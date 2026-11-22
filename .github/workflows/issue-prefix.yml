@@ -1,0 +1,22 @@
+name: VMP issue prefix
+on:
+  issues:
+    types: [opened, edited, reopened]
+permissions:
+  issues: write
+concurrency:
+  group: issue-prefix-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  prefix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const {data: issue} = await github.rest.issues.get({...context.repo, issue_number: context.issue.number});
+            const name = issue.title.replace(/^VMP-(?:\d+|XX)\s*[:|\-]?\s*/i, '').trim();
+            const title = 'VMP-' + String(issue.number).padStart(2, '0') + ': ' + name;
+            if (issue.title !== title) {
+              await github.rest.issues.update({...context.repo, issue_number: issue.number, title});
+            }

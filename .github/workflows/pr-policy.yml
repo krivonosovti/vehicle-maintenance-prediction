@@ -1,0 +1,45 @@
+name: VMP PR policy
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+jobs:
+  policy:
+    name: VMP PR policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const branch = /^feat\/VMP-(\d{2,})(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$/.exec(pr.head.ref);
+            const title = /^VMP-(\d{2,}):\s+\S/.exec(pr.title);
+            if (!branch || !title || branch[1] !== title[1]) {
+              core.setFailed('Ветка feat/VMP-XX[-description] и заголовок VMP-XX: Название должны содержать одинаковый номер.');
+              return;
+            }
+            const number = Number(branch[1]);
+            if (!Number.isSafeInteger(number) || number < 1 || String(number).padStart(2, '0') !== branch[1]) {
+              core.setFailed('Номер VMP должен совпадать с номером Issue, например 04 или 123.');
+              return;
+            }
+            const body = (pr.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/```[\s\S]*?```/g, '');
+            const linked = [...body.matchAll(/^\s*(?:close[sd]?|fix(?:es|ed)?|resolve[sd]?)\s+#(\d+)\s*$/gim)]
+              .some(match => Number(match[1]) === number);
+            if (!linked) {
+              core.setFailed('Добавьте отдельную строку Closes #' + number + ' в описание PR.');
+              return;
+            }
+            const {data: issue} = await github.rest.issues.get({...context.repo, issue_number: number});
+            if (issue.pull_request || issue.state !== 'open') {
+              core.setFailed('Ссылка должна вести на открытую задачу, а не другой PR.');
+              return;
+            }
+            if (pr.base.ref !== context.payload.repository.default_branch) {
+              core.setFailed('PR должен быть направлен в основную ветку репозитория.');
+              return;
+            }
+            core.info('Ветка, название PR и связь с задачей корректны.');

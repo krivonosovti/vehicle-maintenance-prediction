@@ -1,0 +1,38 @@
+name: VMP review requests
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+permissions:
+  pull-requests: write
+jobs:
+  reviewers:
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    steps:
+      # No checkout or execution of PR code. Only metadata is processed.
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          VMP_TEAM: ${{ vars.VMP_TEAM }}
+        with:
+          script: |
+            const team = [...new Set((process.env.VMP_TEAM || '').split(/[\s,]+/).filter(Boolean).map(login => login.toLowerCase()))];
+            if (team.length === 0) {
+              core.notice('Автоназначение отложено: задайте переменную репозитория VMP_TEAM с тремя GitHub-логинами.');
+              return;
+            }
+            if (team.length !== 3 || team.some(login => !/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/.test(login))) {
+              core.setFailed('VMP_TEAM должна содержать ровно три разных GitHub-логина, разделённых запятыми.');
+              return;
+            }
+            const pr = context.payload.pull_request;
+            const author = pr.user.login.toLowerCase();
+            if (!team.includes(author)) {
+              core.setFailed('Автор PR отсутствует в VMP_TEAM; назначьте ревью вручную.');
+              return;
+            }
+            const {data: current} = await github.rest.pulls.listRequestedReviewers({...context.repo, pull_number: pr.number});
+            const requested = new Set(current.users.map(user => user.login.toLowerCase()));
+            const reviewers = team.filter(login => login !== author && !requested.has(login));
+            if (reviewers.length) {
+              await github.rest.pulls.requestReviewers({...context.repo, pull_number: pr.number, reviewers});
+            }
