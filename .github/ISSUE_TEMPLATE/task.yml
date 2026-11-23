@@ -1,0 +1,28 @@
+name: Задача VMP
+description: Работа над учебным ML-проектом
+body:
+  - type: markdown
+    attributes:
+      value: "После создания номер Issue автоматически станет префиксом VMP-XX. Нумерация Issues и PR общая, поэтому пропуски допустимы."
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Цель и результат
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии готовности
+      description: Проверяемые результаты задачи
+    validations:
+      required: true
+  - type: input
+    id: deadline
+    attributes:
+      label: Внутренний срок
+      placeholder: "26.11.2026"
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Зависимости и материалы
