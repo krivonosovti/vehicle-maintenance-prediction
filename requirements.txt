@@ -1,0 +1,20 @@
+# Core data manipulation
+numpy==2.4.3
+pandas==3.0.1
+
+# Visualization
+matplotlib==3.10.8
+seaborn==0.13.2
+
+# Machine learning
+scikit-learn==1.8.0
+xgboost==3.2.0
+
+# Model interpretation
+shap==0.51.0
+
+# Jupyter environment
+jupyterlab==4.5.6
+notebook==7.5.5
+ipykernel==7.2.0
+ipywidgets==8.1.8
